@@ -36,8 +36,15 @@ const labelStyle: React.CSSProperties = {
   marginBottom: "6px",
 };
 
+function uniqueFileName(file: File) {
+  const ext = file.name.split(".").pop();
+  const random = Math.random().toString(36).slice(2);
+  return `${Date.now()}-${random}.${ext}`;
+}
+
 export default function AddHomestay() {
   const [loading, setLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   const [title, setTitle] = useState("");
   const [destination, setDestination] = useState("");
@@ -60,31 +67,109 @@ export default function AddHomestay() {
   async function saveHomestay() {
     setLoading(true);
 
-    const { error } = await supabase.from("properties").insert([
-      {
-        title,
-        destination,
-        location,
-        description,
-        about_host: aboutHost,
-        about_area: aboutArea,
-        nearby_attractions: nearbyAttractions,
-        guest_experiences: guestExperiences,
-        host_name: hostName,
-        contact,
-        whatsapp,
-        google_maps: googleMaps,
-      },
-    ]);
+    try {
+      // 1. Upload thumbnail (if provided)
+      let coverPhotoUrl: string | null = null;
 
-    setLoading(false);
+      if (thumbnail) {
+        setUploadStatus("Uploading thumbnail...");
+        const fileName = uniqueFileName(thumbnail);
 
-    if (error) {
-      alert(error.message);
-      return;
+        const { error: uploadError } = await supabase.storage
+          .from("Homestay")
+          .upload(fileName, thumbnail);
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from("Homestay")
+          .getPublicUrl(fileName);
+
+        coverPhotoUrl = publicUrlData.publicUrl;
+      }
+
+      // 2. Insert the property row, get its new id back
+      setUploadStatus("Saving details...");
+
+      const { data: inserted, error: insertError } = await supabase
+        .from("properties")
+        .insert([
+          {
+            title,
+            destination,
+            location,
+            description,
+            about_host: aboutHost,
+            about_area: aboutArea,
+            nearby_attractions: nearbyAttractions,
+            guest_experiences: guestExperiences,
+            host_name: hostName,
+            contact,
+            whatsapp,
+            google_maps: googleMaps,
+            cover_photo: coverPhotoUrl,
+          },
+        ])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      const propertyId = inserted.id;
+
+      // 3. Upload gallery photos and link them to the new property
+      if (gallery.length > 0) {
+        setUploadStatus(`Uploading ${gallery.length} gallery photo(s)...`);
+
+        for (const file of gallery) {
+          const fileName = uniqueFileName(file);
+
+          const { error: galleryUploadError } = await supabase.storage
+            .from("Homestay")
+            .upload(fileName, file);
+
+          if (galleryUploadError) throw galleryUploadError;
+
+          const { data: galleryUrlData } = supabase.storage
+            .from("Homestay")
+            .getPublicUrl(fileName);
+
+          const { error: galleryInsertError } = await supabase
+            .from("property_images")
+            .insert([
+              {
+                property_id: propertyId,
+                url: galleryUrlData.publicUrl,
+              },
+            ]);
+
+          if (galleryInsertError) throw galleryInsertError;
+        }
+      }
+
+      alert("Homestay added successfully!");
+
+      // Reset form
+      setTitle("");
+      setDestination("");
+      setLocation("");
+      setDescription("");
+      setAboutHost("");
+      setAboutArea("");
+      setNearbyAttractions("");
+      setGuestExperiences("");
+      setHostName("");
+      setContact("");
+      setWhatsapp("");
+      setGoogleMaps("");
+      setThumbnail(null);
+      setGallery([]);
+    } catch (err: any) {
+      alert(err.message || "Something went wrong while saving.");
+    } finally {
+      setLoading(false);
+      setUploadStatus("");
     }
-
-    alert("Homestay added successfully!");
   }
 
   return (
@@ -98,13 +183,7 @@ export default function AddHomestay() {
       }}
     >
       <main style={{ maxWidth: "700px", margin: "0 auto" }}>
-        <h1
-          style={{
-            fontSize: "24px",
-            fontWeight: 700,
-            margin: "0 0 4px",
-          }}
-        >
+        <h1 style={{ fontSize: "24px", fontWeight: 700, margin: "0 0 4px" }}>
           Add Homestay
         </h1>
         <p style={{ margin: "0 0 24px", color: "#6b7280", fontSize: "14px" }}>
@@ -305,7 +384,7 @@ export default function AddHomestay() {
             transition: "background 0.15s ease",
           }}
         >
-          {loading ? "Saving..." : "Save Homestay"}
+          {loading ? uploadStatus || "Saving..." : "Save Homestay"}
         </button>
       </main>
     </div>
