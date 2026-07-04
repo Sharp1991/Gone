@@ -58,6 +58,7 @@ export default function EditHomestay() {
   const [contact, setContact] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [googleMaps, setGoogleMaps] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState("");
 
   useEffect(() => {
     if (id) fetchProperty();
@@ -91,6 +92,7 @@ export default function EditHomestay() {
       setContact(data.contact || "");
       setWhatsapp(data.whatsapp || "");
       setGoogleMaps(data.google_maps || "");
+      setYoutubeLink(data.youtube_link || "");
     }
 
     setLoading(false);
@@ -114,6 +116,7 @@ export default function EditHomestay() {
         contact,
         whatsapp,
         google_maps: googleMaps,
+        youtube_link: youtubeLink,
       })
       .eq("id", id);
 
@@ -198,6 +201,15 @@ export default function EditHomestay() {
             type="text"
             value={googleMaps}
             onChange={(e) => setGoogleMaps(e.target.value)}
+            style={inputStyle}
+          />
+
+          <label style={labelStyle}>YouTube Video Link (optional)</label>
+          <input
+            type="text"
+            placeholder="https://youtube.com/watch?v=..."
+            value={youtubeLink}
+            onChange={(e) => setYoutubeLink(e.target.value)}
             style={{ ...inputStyle, marginBottom: 0 }}
           />
         </section>

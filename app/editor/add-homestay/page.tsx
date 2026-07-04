@@ -60,6 +60,7 @@ export default function AddHomestay() {
   const [contact, setContact] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [googleMaps, setGoogleMaps] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState("");
 
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [gallery, setGallery] = useState<File[]>([]);
@@ -107,6 +108,7 @@ export default function AddHomestay() {
             contact,
             whatsapp,
             google_maps: googleMaps,
+            youtube_link: youtubeLink,
             cover_photo: coverPhotoUrl,
           },
         ])
@@ -162,6 +164,7 @@ export default function AddHomestay() {
       setContact("");
       setWhatsapp("");
       setGoogleMaps("");
+      setYoutubeLink("");
       setThumbnail(null);
       setGallery([]);
     } catch (err: any) {
@@ -229,6 +232,15 @@ export default function AddHomestay() {
             placeholder="https://maps.google.com/..."
             value={googleMaps}
             onChange={(e) => setGoogleMaps(e.target.value)}
+            style={inputStyle}
+          />
+
+          <label style={labelStyle}>YouTube Video Link (optional)</label>
+          <input
+            type="text"
+            placeholder="https://youtube.com/watch?v=..."
+            value={youtubeLink}
+            onChange={(e) => setYoutubeLink(e.target.value)}
             style={{ ...inputStyle, marginBottom: 0 }}
           />
         </section>
