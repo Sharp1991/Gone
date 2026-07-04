@@ -7,7 +7,8 @@ import HomestayList from "@/components/HomestayList";
 export default function Dashboard() {
   const [showForm, setShowForm] = useState(false);
 
-  const homestays = [];
+  // ✅ FIX: TypeScript-safe but same behavior
+  const homestays = [] as any[];
 
   function handleEdit(id: string) {
     alert("Edit: " + id);
