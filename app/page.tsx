@@ -1,4 +1,6 @@
+"use client";
 
+import { useState, useRef } from "react";
 import Link from "next/link";
 
 const colors = {
@@ -10,7 +12,244 @@ const colors = {
   river: "#4A7C82",
 };
 
+const slides = [
+  {
+    caption: "Homestays run by real families, not management companies",
+    // Replace with real photo URLs once uploaded (e.g. via Supabase Storage)
+    image: "https://picsum.photos/seed/meghalaya-hills-1/1200/900",
+    gradient: `linear-gradient(135deg, ${colors.forest}, ${colors.river})`,
+  },
+  {
+    caption: "Discover hidden corners of the Northeast, off the usual trail",
+    image: "https://picsum.photos/seed/northeast-waterfall/1200/900",
+    gradient: `linear-gradient(135deg, ${colors.river}, ${colors.bamboo})`,
+  },
+  {
+    caption: "Connect directly with your host — no middleman, ever",
+    image: "https://picsum.photos/seed/village-homestay/1200/900",
+    gradient: `linear-gradient(135deg, ${colors.forest}, ${colors.bamboo})`,
+  },
+];
+
+const steps = [
+  {
+    number: "01",
+    title: "Pick a Destination",
+    body: "Browse by area — Shillong, Dawki, Sohra, and more — and see what's actually there.",
+  },
+  {
+    number: "02",
+    title: "Explore Homestays",
+    body: "Real listings run by real hosts, with photos, stories, and no management company in between.",
+  },
+  {
+    number: "03",
+    title: "Connect Directly",
+    body: "Call, message on WhatsApp, or open the map — straight to your host, no middleman.",
+  },
+];
+
+function HeroCarousel() {
+  const [index, setIndex] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  function next() {
+    setIndex((i) => (i + 1) % slides.length);
+  }
+  function prev() {
+    setIndex((i) => (i - 1 + slides.length) % slides.length);
+  }
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const diff = e.changedTouches[0].clientX - touchStartX.current;
+    if (diff > 50) prev();
+    else if (diff < -50) next();
+    touchStartX.current = null;
+  }
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "88vh",
+        minHeight: "560px",
+        overflow: "hidden",
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <style>{`
+        @keyframes kenburns {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.08); }
+        }
+        .kb-slide-active {
+          animation: kenburns 7s ease-out forwards;
+        }
+      `}</style>
+
+      <div
+        style={{
+          display: "flex",
+          width: `${slides.length * 100}%`,
+          height: "100%",
+          transform: `translateX(-${index * (100 / slides.length)}%)`,
+          transition: "transform 0.7s cubic-bezier(0.65, 0, 0.35, 1)",
+        }}
+      >
+        {slides.map((slide, i) => (
+          <div
+            key={i}
+            style={{
+              width: `${100 / slides.length}%`,
+              height: "100%",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              className={i === index ? "kb-slide-active" : ""}
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: slide.image
+                  ? `url(${slide.image}) center/cover no-repeat`
+                  : slide.gradient,
+              }}
+            />
+
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                padding: "0 24px 80px",
+                gap: "22px",
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: "Georgia, 'Iowan Old Style', serif",
+                  fontSize: "clamp(22px, 4.5vw, 34px)",
+                  fontWeight: 700,
+                  color: "#ffffff",
+                  maxWidth: "540px",
+                  margin: 0,
+                  textAlign: "center",
+                  lineHeight: 1.3,
+                  textShadow: "0 2px 12px rgba(0,0,0,0.3)",
+                }}
+              >
+                {slide.caption}
+              </p>
+
+              <Link href="/destinations" style={{ textDecoration: "none" }}>
+                <button
+                  style={{
+                    background: "#ffffff",
+                    color: colors.forest,
+                    border: "none",
+                    padding: "14px 28px",
+                    borderRadius: "999px",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    letterSpacing: "0.02em",
+                    boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  Browse Homestays →
+                </button>
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={prev}
+        aria-label="Previous slide"
+        style={{
+          position: "absolute",
+          left: "16px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "rgba(255,255,255,0.2)",
+          backdropFilter: "blur(4px)",
+          border: "none",
+          color: "#fff",
+          width: "40px",
+          height: "40px",
+          borderRadius: "50%",
+          cursor: "pointer",
+          fontSize: "18px",
+        }}
+      >
+        ‹
+      </button>
+      <button
+        onClick={next}
+        aria-label="Next slide"
+        style={{
+          position: "absolute",
+          right: "16px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "rgba(255,255,255,0.2)",
+          backdropFilter: "blur(4px)",
+          border: "none",
+          color: "#fff",
+          width: "40px",
+          height: "40px",
+          borderRadius: "50%",
+          cursor: "pointer",
+          fontSize: "18px",
+        }}
+      >
+        ›
+      </button>
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: "24px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          gap: "8px",
+        }}
+      >
+        {slides.map((_, i) => (
+          <div
+            key={i}
+            onClick={() => setIndex(i)}
+            style={{
+              width: i === index ? "22px" : "7px",
+              height: "7px",
+              borderRadius: "999px",
+              background: i === index ? "#fff" : "rgba(255,255,255,0.4)",
+              cursor: "pointer",
+              transition: "width 0.3s ease",
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div
       style={{
@@ -24,8 +263,8 @@ export default function HomePage() {
         style={{
           position: "sticky",
           top: 0,
-          zIndex: 10,
-          background: "rgba(241, 244, 241, 0.92)",
+          zIndex: 20,
+          background: "rgba(241, 244, 241, 0.95)",
           backdropFilter: "blur(6px)",
           borderBottom: `1px solid rgba(47, 74, 62, 0.12)`,
           padding: "16px 24px",
@@ -45,231 +284,100 @@ export default function HomePage() {
           GooNortheast
         </span>
 
-        <Link href="/destinations" style={{ textDecoration: "none" }}>
-          <button
-            style={{
-              background: colors.forest,
-              color: colors.mist,
-              border: "none",
-              padding: "10px 18px",
-              borderRadius: "999px",
-              fontSize: "13px",
-              fontWeight: 600,
-              cursor: "pointer",
-              letterSpacing: "0.02em",
-            }}
-          >
-            Browse Homestays
-          </button>
-        </Link>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Menu"
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "6px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+          }}
+        >
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+        </button>
       </header>
 
-      {/* HERO */}
-      <section
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          padding: "100px 24px 90px",
-          textAlign: "center",
-        }}
-      >
-        {/* Topographic contour-line motif, evoking the hills */}
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 800 400"
+      {menuOpen && (
+        <div
           style={{
-            position: "absolute",
-            top: 0,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "140%",
-            maxWidth: "1200px",
-            opacity: 0.16,
-            pointerEvents: "none",
+            position: "sticky",
+            top: "57px",
+            zIndex: 19,
+            background: "#ffffff",
+            borderBottom: `1px solid rgba(47, 74, 62, 0.12)`,
+            display: "flex",
+            flexDirection: "column",
+            padding: "10px 24px",
           }}
         >
-          <path
-            d="M0 320 Q 100 260 200 300 T 400 280 T 600 310 T 800 270"
-            fill="none"
-            stroke={colors.forest}
-            strokeWidth="2"
-          />
-          <path
-            d="M0 350 Q 100 300 200 335 T 400 320 T 600 345 T 800 310"
-            fill="none"
-            stroke={colors.forest}
-            strokeWidth="2"
-          />
-          <path
-            d="M0 380 Q 100 345 200 370 T 400 360 T 600 380 T 800 350"
-            fill="none"
-            stroke={colors.forest}
-            strokeWidth="2"
-          />
-          <path
-            d="M0 290 Q 100 220 200 265 T 400 240 T 600 275 T 800 225"
-            fill="none"
-            stroke={colors.bamboo}
-            strokeWidth="2"
-          />
-        </svg>
+          <Link href="/destinations" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0", borderBottom: "1px solid rgba(47,74,62,0.08)" }}>
+            Browse Homestays
+          </Link>
+          <Link href="/about" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0", borderBottom: "1px solid rgba(47,74,62,0.08)" }}>
+            About
+          </Link>
+          <Link href="/contact" onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0" }}>
+            Contact
+          </Link>
+        </div>
+      )}
 
-        <p
-          style={{
-            position: "relative",
-            fontSize: "13px",
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: colors.river,
-            margin: "0 0 18px",
-          }}
-        >
-          Northeast India, one homestay at a time
-        </p>
+      <HeroCarousel />
 
-        <h1
-          style={{
-            position: "relative",
-            fontFamily: "Georgia, 'Iowan Old Style', serif",
-            fontSize: "clamp(32px, 5vw, 52px)",
-            lineHeight: 1.15,
-            fontWeight: 700,
-            margin: "0 auto 20px",
-            maxWidth: "720px",
-            color: colors.forest,
-          }}
-        >
-          Homestays woven into the hills, mist, and villages of the Northeast
-        </h1>
-
-        <p
-          style={{
-            position: "relative",
-            fontSize: "16px",
-            lineHeight: 1.6,
-            color: colors.ink,
-            maxWidth: "560px",
-            margin: "0 auto 34px",
-            opacity: 0.85,
-          }}
-        >
-          GooNortheast connects travelers with real homes and real hosts across
-          Meghalaya and beyond — places you won't find in a hotel directory,
-          run by families who know every trail, waterfall, and root bridge
-          nearby.
-        </p>
-
-        <Link href="/destinations" style={{ textDecoration: "none" }}>
-          <button
-            style={{
-              position: "relative",
-              background: colors.forest,
-              color: colors.mist,
-              border: "none",
-              padding: "14px 28px",
-              borderRadius: "999px",
-              fontSize: "15px",
-              fontWeight: 600,
-              cursor: "pointer",
-              letterSpacing: "0.02em",
-            }}
-          >
-            Explore Homestays →
-          </button>
-        </Link>
-      </section>
-
-      {/* AIM */}
-      <section
-        style={{
-          maxWidth: "760px",
-          margin: "0 auto",
-          padding: "10px 24px 70px",
-          textAlign: "center",
-        }}
-      >
+      {/* HOW IT WORKS */}
+      <section style={{ maxWidth: "980px", margin: "0 auto", padding: "60px 24px 90px" }}>
         <h2
           style={{
             fontFamily: "Georgia, 'Iowan Old Style', serif",
-            fontSize: "26px",
+            fontSize: "22px",
             fontWeight: 700,
             color: colors.forest,
-            margin: "0 0 14px",
+            textAlign: "center",
+            margin: "0 0 32px",
           }}
         >
-          Why we exist
+          How It Works
         </h2>
-        <p style={{ fontSize: "15px", lineHeight: 1.7, opacity: 0.85, margin: 0 }}>
-          Too much of the Northeast's warmth lives in homes that never make it
-          onto a map. We built GooNortheast to change that — a simple way to
-          find homestays run by the people who actually live there, so your
-          trip supports local families first, not just another booking
-          platform.
-        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "28px",
+          }}
+        >
+          {steps.map((step) => (
+            <div key={step.number} style={{ textAlign: "left" }}>
+              <div
+                style={{
+                  fontFamily: "Georgia, 'Iowan Old Style', serif",
+                  fontSize: "34px",
+                  fontWeight: 700,
+                  color: colors.bamboo,
+                  opacity: 0.6,
+                  marginBottom: "10px",
+                  lineHeight: 1,
+                }}
+              >
+                {step.number}
+              </div>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, color: colors.forest, margin: "0 0 8px" }}>
+                {step.title}
+              </h3>
+              <p style={{ fontSize: "14px", lineHeight: 1.65, opacity: 0.8, margin: 0 }}>
+                {step.body}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* HIGHLIGHTS */}
-      <section
-        style={{
-          maxWidth: "980px",
-          margin: "0 auto",
-          padding: "0 24px 90px",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "28px",
-        }}
-      >
-        {[
-          {
-            title: "Real Hosts",
-            body: "Every listing is run by a local family, not a management company.",
-          },
-          {
-            title: "Hidden Corners",
-            body: "From root bridges to quiet ridge villages, off the usual tourist trail.",
-          },
-          {
-            title: "Living Culture",
-            body: "Stay somewhere that shares food, stories, and daily life, not just a room.",
-          },
-        ].map((item) => (
-          <div
-            key={item.title}
-            style={{
-              background: "#ffffff",
-              border: `1px solid rgba(47, 74, 62, 0.12)`,
-              borderRadius: "16px",
-              padding: "26px 22px",
-              textAlign: "left",
-            }}
-          >
-            <div
-              style={{
-                width: "34px",
-                height: "3px",
-                background: colors.bamboo,
-                marginBottom: "14px",
-              }}
-            />
-            <h3
-              style={{
-                fontSize: "16px",
-                fontWeight: 700,
-                color: colors.forest,
-                margin: "0 0 8px",
-              }}
-            >
-              {item.title}
-            </h3>
-            <p style={{ fontSize: "14px", lineHeight: 1.6, opacity: 0.8, margin: 0 }}>
-              {item.body}
-            </p>
-          </div>
-        ))}
-      </section>
-
-      {/* FOOTER */}
       <footer
         style={{
           borderTop: `1px solid rgba(47, 74, 62, 0.12)`,
@@ -279,8 +387,7 @@ export default function HomePage() {
           color: colors.sage,
         }}
       >
-        © {new Date().getFullYear()} GooNortheast. Made with care for the
-        hills.
+        © {new Date().getFullYear()} GooNortheast. Made with care for the hills.
       </footer>
     </div>
   );
