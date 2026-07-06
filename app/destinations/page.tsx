@@ -22,13 +22,19 @@ type Destination = {
   cover_photo: string | null;
 };
 
-// Placeholder stock photo, used only until a real cover_photo is uploaded
+// Placeholder stock photo, used only if a destination has no cover_photo
+// AND no homestay in that area has a photo either
 function placeholderImageFor(slug: string) {
   return `https://picsum.photos/seed/${slug}-destination/600/400`;
 }
 
+function normalize(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
 export default function DestinationsOverview() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [homestayPhotoByArea, setHomestayPhotoByArea] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -46,6 +52,24 @@ export default function DestinationsOverview() {
 
     if (!error) {
       setDestinations(data || []);
+    }
+
+    // Grab one real homestay photo per area, to use as a fallback
+    const { data: properties } = await supabase
+      .from("properties")
+      .select("destination, cover_photo")
+      .not("cover_photo", "is", null);
+
+    if (properties) {
+      const photoMap: Record<string, string> = {};
+      for (const p of properties) {
+        if (!p.destination || !p.cover_photo) continue;
+        const key = normalize(p.destination);
+        if (!photoMap[key]) {
+          photoMap[key] = p.cover_photo;
+        }
+      }
+      setHomestayPhotoByArea(photoMap);
     }
 
     setLoading(false);
@@ -198,7 +222,12 @@ export default function DestinationsOverview() {
               }}
             >
               <img
-                src={dest.cover_photo || placeholderImageFor(dest.slug)}
+                src={
+                  dest.cover_photo ||
+                  homestayPhotoByArea[normalize(dest.slug)] ||
+                  homestayPhotoByArea[normalize(dest.name)] ||
+                  placeholderImageFor(dest.slug)
+                }
                 alt={dest.name}
                 style={{ width: "100%", height: "170px", objectFit: "cover", display: "block" }}
               />
