@@ -274,7 +274,7 @@ export default function Homestay() {
                       ).map((property) => (
                         <Link
                           key={property.id}
-                          href={`/homestay/${property.id}`}
+                          href={`/stay/${property.id}`}
                           style={{ textDecoration: "none", color: "inherit" }}
                         >
                           <div

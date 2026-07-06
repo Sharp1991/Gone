@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 
 const colors = {
@@ -44,7 +45,7 @@ export default function HomePage() {
           GooNortheast
         </span>
 
-        <Link href="/homestay" style={{ textDecoration: "none" }}>
+        <Link href="/destinations" style={{ textDecoration: "none" }}>
           <button
             style={{
               background: colors.forest,
@@ -159,7 +160,7 @@ export default function HomePage() {
           nearby.
         </p>
 
-        <Link href="/homestay" style={{ textDecoration: "none" }}>
+        <Link href="/destinations" style={{ textDecoration: "none" }}>
           <button
             style={{
               position: "relative",
