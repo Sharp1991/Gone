@@ -336,16 +336,11 @@ export default function HomestayDetails() {
         }}
       >
         <Link href="/" style={{ textDecoration: "none" }}>
-          <span
-            style={{
-              fontSize: "17px",
-              fontWeight: 700,
-              letterSpacing: "0.02em",
-              color: colors.forest,
-            }}
-          >
-            GooNortheast
-          </span>
+          <img
+            src="/logo.png"
+            alt="GoNortheast"
+            style={{ height: "36px", width: "auto", display: "block" }}
+          />
         </Link>
 
         <button
