@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import AdminNav from "@/components/AdminNav";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -276,10 +277,26 @@ export default function AddDestination() {
         background: "#f4f6f8",
         fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif",
         color: "#111827",
-        padding: "40px 16px",
       }}
     >
-      <main style={{ maxWidth: "700px", margin: "0 auto" }}>
+      <header
+        style={{
+          background: "#ffffff",
+          borderBottom: "1px solid #e5e7eb",
+          padding: "14px 22px",
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+        }}
+      >
+        <h1 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>
+          GooNortheast Admin
+        </h1>
+      </header>
+
+      <AdminNav />
+
+      <main style={{ maxWidth: "700px", margin: "0 auto", padding: "40px 16px" }}>
         <h1 style={{ fontSize: "24px", fontWeight: 700, margin: "0 0 4px" }}>
           Add Destination
         </h1>
