@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 const colors = {
   forest: "#2F4A3E",
@@ -12,22 +13,22 @@ const colors = {
   river: "#4A7C82",
 };
 
-const slides = [
+// Used only if no slides have been added yet via the admin panel
+const DEFAULT_SLIDES = [
   {
     caption: "Homestays run by real families, not management companies",
-    // Replace with real photo URLs once uploaded (e.g. via Supabase Storage)
     image: "https://picsum.photos/seed/meghalaya-hills-1/1200/900",
-    gradient: `linear-gradient(135deg, ${colors.forest}, ${colors.river})`,
+    link_url: "/destinations",
   },
   {
     caption: "Discover hidden corners of the Northeast, off the usual trail",
     image: "https://picsum.photos/seed/northeast-waterfall/1200/900",
-    gradient: `linear-gradient(135deg, ${colors.river}, ${colors.bamboo})`,
+    link_url: "/destinations",
   },
   {
     caption: "Connect directly with your host — no middleman, ever",
     image: "https://picsum.photos/seed/village-homestay/1200/900",
-    gradient: `linear-gradient(135deg, ${colors.forest}, ${colors.bamboo})`,
+    link_url: "/destinations",
   },
 ];
 
@@ -50,8 +51,30 @@ const steps = [
 ];
 
 function HeroCarousel() {
+  const [slides, setSlides] = useState(DEFAULT_SLIDES);
   const [index, setIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
+
+  useEffect(() => {
+    fetchSlides();
+  }, []);
+
+  async function fetchSlides() {
+    const { data } = await supabase
+      .from("hero_slides")
+      .select("image_url, caption, link_url")
+      .order("sort_order", { ascending: true });
+
+    if (data && data.length > 0) {
+      setSlides(
+        data.map((s) => ({
+          image: s.image_url,
+          caption: s.caption || "",
+          link_url: s.link_url || "/destinations",
+        }))
+      );
+    }
+  }
 
   function next() {
     setIndex((i) => (i + 1) % slides.length);
@@ -116,9 +139,7 @@ function HeroCarousel() {
               style={{
                 position: "absolute",
                 inset: 0,
-                background: slide.image
-                  ? `url(${slide.image}) center/cover no-repeat`
-                  : slide.gradient,
+                background: `url(${slide.image}) center/cover no-repeat`,
               }}
             />
 
@@ -152,7 +173,7 @@ function HeroCarousel() {
                 {slide.caption}
               </p>
 
-              <Link href="/destinations" style={{ textDecoration: "none" }}>
+              <Link href={slide.link_url || "/destinations"} style={{ textDecoration: "none" }}>
                 <button
                   style={{
                     background: "#ffffff",

@@ -39,6 +39,7 @@ const labelStyle: React.CSSProperties = {
 type PlaceEntry = {
   name: string;
   maps_link: string;
+  imageFile: File | null;
 };
 
 function slugify(name: string) {
@@ -47,6 +48,12 @@ function slugify(name: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+function uniqueFileName(file: File) {
+  const ext = file.name.split(".").pop();
+  const random = Math.random().toString(36).slice(2);
+  return `${Date.now()}-${random}.${ext}`;
 }
 
 function PlaceEntryList({
@@ -58,14 +65,14 @@ function PlaceEntryList({
   entries: PlaceEntry[];
   setEntries: (entries: PlaceEntry[]) => void;
 }) {
-  function updateEntry(index: number, field: keyof PlaceEntry, value: string) {
+  function updateEntry(index: number, field: keyof PlaceEntry, value: any) {
     const updated = [...entries];
     updated[index] = { ...updated[index], [field]: value };
     setEntries(updated);
   }
 
   function addEntry() {
-    setEntries([...entries, { name: "", maps_link: "" }]);
+    setEntries([...entries, { name: "", maps_link: "", imageFile: null }]);
   }
 
   function removeEntry(index: number) {
@@ -80,40 +87,58 @@ function PlaceEntryList({
         <div
           key={index}
           style={{
-            display: "flex",
-            gap: "8px",
-            marginBottom: "8px",
-            alignItems: "center",
+            border: "1px solid #e5e7eb",
+            borderRadius: "10px",
+            padding: "12px",
+            marginBottom: "10px",
           }}
         >
+          <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+            <input
+              type="text"
+              placeholder="Name (e.g. Elephant Falls)"
+              value={entry.name}
+              onChange={(e) => updateEntry(index, "name", e.target.value)}
+              style={{ ...inputStyle, marginBottom: 0, flex: 1 }}
+            />
+            <input
+              type="text"
+              placeholder="Google Maps link"
+              value={entry.maps_link}
+              onChange={(e) => updateEntry(index, "maps_link", e.target.value)}
+              style={{ ...inputStyle, marginBottom: 0, flex: 1 }}
+            />
+            <button
+              onClick={() => removeEntry(index)}
+              style={{
+                background: "#fef2f2",
+                color: "#dc2626",
+                border: "1px solid #fecaca",
+                borderRadius: "8px",
+                padding: "10px 12px",
+                cursor: "pointer",
+                fontSize: "13px",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
           <input
-            type="text"
-            placeholder="Name (e.g. Elephant Falls)"
-            value={entry.name}
-            onChange={(e) => updateEntry(index, "name", e.target.value)}
-            style={{ ...inputStyle, marginBottom: 0, flex: 1 }}
-          />
-          <input
-            type="text"
-            placeholder="Google Maps link"
-            value={entry.maps_link}
-            onChange={(e) => updateEntry(index, "maps_link", e.target.value)}
-            style={{ ...inputStyle, marginBottom: 0, flex: 1 }}
-          />
-          <button
-            onClick={() => removeEntry(index)}
-            style={{
-              background: "#fef2f2",
-              color: "#dc2626",
-              border: "1px solid #fecaca",
-              borderRadius: "8px",
-              padding: "10px 12px",
-              cursor: "pointer",
-              fontSize: "13px",
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                updateEntry(index, "imageFile", e.target.files[0]);
+              }
             }}
-          >
-            ✕
-          </button>
+            style={{ fontSize: "12px" }}
+          />
+          {entry.imageFile && (
+            <p style={{ fontSize: "12px", color: "#2563eb", margin: "6px 0 0" }}>
+              Selected: {entry.imageFile.name}
+            </p>
+          )}
         </div>
       ))}
 
@@ -138,6 +163,7 @@ function PlaceEntryList({
 
 export default function AddDestination() {
   const [saving, setSaving] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   const [name, setName] = useState("");
   const [distanceFromCapital, setDistanceFromCapital] = useState("");
@@ -188,16 +214,41 @@ export default function AddDestination() {
       ];
 
       if (allPlaces.length > 0) {
+        setUploadStatus(`Uploading ${allPlaces.length} place photo(s)...`);
+
+        const placesToInsert = [];
+
+        for (const p of allPlaces) {
+          let imageUrl: string | null = null;
+
+          if (p.imageFile) {
+            const fileName = uniqueFileName(p.imageFile);
+
+            const { error: uploadError } = await supabase.storage
+              .from("Homestay")
+              .upload(fileName, p.imageFile);
+
+            if (uploadError) throw uploadError;
+
+            const { data: publicUrlData } = supabase.storage
+              .from("Homestay")
+              .getPublicUrl(fileName);
+
+            imageUrl = publicUrlData.publicUrl;
+          }
+
+          placesToInsert.push({
+            destination_id: destinationId,
+            category: p.category,
+            name: p.name,
+            maps_link: p.maps_link,
+            image_url: imageUrl,
+          });
+        }
+
         const { error: placesError } = await supabase
           .from("destination_places")
-          .insert(
-            allPlaces.map((p) => ({
-              destination_id: destinationId,
-              category: p.category,
-              name: p.name,
-              maps_link: p.maps_link,
-            }))
-          );
+          .insert(placesToInsert);
 
         if (placesError) throw placesError;
       }
@@ -214,6 +265,7 @@ export default function AddDestination() {
       alert(err.message || "Something went wrong while saving.");
     } finally {
       setSaving(false);
+      setUploadStatus("");
     }
   }
 
@@ -305,7 +357,7 @@ export default function AddDestination() {
             cursor: saving ? "not-allowed" : "pointer",
           }}
         >
-          {saving ? "Saving..." : "Save Destination"}
+          {saving ? uploadStatus || "Saving..." : "Save Destination"}
         </button>
       </main>
     </div>

@@ -28,56 +28,79 @@ type Place = {
   category: "attraction" | "activity" | "restaurant";
   name: string;
   maps_link: string | null;
+  image_url: string | null;
 };
 
-function PlaceList({ title, places }: { title: string; places: Place[] }) {
+function placeholderPlaceImage(name: string) {
+  return `https://picsum.photos/seed/${encodeURIComponent(name)}/300/220`;
+}
+
+function PlaceSlider({ title, places }: { title: string; places: Place[] }) {
   if (places.length === 0) return null;
 
   return (
-    <section
-      style={{
-        background: "#ffffff",
-        border: `1px solid rgba(47, 74, 62, 0.12)`,
-        borderRadius: "16px",
-        padding: "22px 24px",
-        marginBottom: "20px",
-      }}
-    >
+    <section style={{ marginBottom: "28px" }}>
       <h2
         style={{
           fontFamily: "Georgia, 'Iowan Old Style', serif",
           fontSize: "17px",
           fontWeight: 700,
           color: colors.forest,
-          margin: "0 0 14px",
+          margin: "0 0 12px",
         }}
       >
         {title}
       </h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          overflowX: "auto",
+          paddingBottom: "6px",
+          WebkitOverflowScrolling: "touch",
+          scrollSnapType: "x mandatory",
+        }}
+      >
         {places.map((place) => {
-          const content = (
-            <>
-              <span style={{ fontSize: "14px", fontWeight: 600 }}>{place.name}</span>
-              {place.maps_link && (
-                <span style={{ fontSize: "12px", fontWeight: 600, color: colors.river }}>
-                  📍 Map
-                </span>
-              )}
-            </>
+          const card = (
+            <div
+              style={{
+                minWidth: "160px",
+                maxWidth: "160px",
+                scrollSnapAlign: "start",
+                background: "#ffffff",
+                border: `1px solid rgba(47, 74, 62, 0.12)`,
+                borderRadius: "14px",
+                overflow: "hidden",
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src={place.image_url || placeholderPlaceImage(place.name)}
+                alt={place.name}
+                style={{ width: "100%", height: "110px", objectFit: "cover", display: "block" }}
+              />
+              <div style={{ padding: "10px 12px" }}>
+                <p
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    color: colors.ink,
+                    margin: "0 0 4px",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {place.name}
+                </p>
+                {place.maps_link && (
+                  <p style={{ fontSize: "11px", fontWeight: 600, color: colors.river, margin: 0 }}>
+                    📍 View on Map
+                  </p>
+                )}
+              </div>
+            </div>
           );
-
-          const rowStyle: React.CSSProperties = {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            textDecoration: "none",
-            background: colors.mist,
-            borderRadius: "10px",
-            padding: "12px 14px",
-            color: colors.ink,
-          };
 
           return place.maps_link ? (
             <a
@@ -85,14 +108,12 @@ function PlaceList({ title, places }: { title: string; places: Place[] }) {
               href={place.maps_link}
               target="_blank"
               rel="noopener noreferrer"
-              style={rowStyle}
+              style={{ textDecoration: "none", color: "inherit" }}
             >
-              {content}
+              {card}
             </a>
           ) : (
-            <div key={place.id} style={rowStyle}>
-              {content}
-            </div>
+            <div key={place.id}>{card}</div>
           );
         })}
       </div>
@@ -100,12 +121,22 @@ function PlaceList({ title, places }: { title: string; places: Place[] }) {
   );
 }
 
+function normalize(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+function placeholderImageFor(slug: string) {
+  return `https://picsum.photos/seed/${slug}-destination/900/500`;
+}
+
 export default function DestinationDetails() {
   const { slug } = useParams<{ slug: string }>();
 
   const [destination, setDestination] = useState<Destination | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
+  const [fallbackPhoto, setFallbackPhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (slug) fetchData();
@@ -123,10 +154,28 @@ export default function DestinationDetails() {
     if (destinationData) {
       const { data: placesData } = await supabase
         .from("destination_places")
-        .select("id, category, name, maps_link")
+        .select("id, category, name, maps_link, image_url")
         .eq("destination_id", destinationData.id);
 
       setPlaces(placesData || []);
+
+      // If this destination has no cover photo of its own, try to find
+      // a real photo from one of its homestays before falling back to a placeholder
+      if (!destinationData.cover_photo) {
+        const { data: properties } = await supabase
+          .from("properties")
+          .select("destination, cover_photo")
+          .not("cover_photo", "is", null);
+
+        const match = properties?.find(
+          (p) =>
+            p.destination &&
+            (normalize(p.destination) === normalize(destinationData.slug) ||
+              normalize(p.destination) === normalize(destinationData.name))
+        );
+
+        setFallbackPhoto(match?.cover_photo || null);
+      }
     }
 
     setDestination(destinationData || null);
@@ -191,11 +240,14 @@ export default function DestinationDetails() {
         style={{
           position: "sticky",
           top: 0,
-          zIndex: 10,
-          background: "rgba(241, 244, 241, 0.92)",
+          zIndex: 20,
+          background: "rgba(241, 244, 241, 0.95)",
           backdropFilter: "blur(6px)",
           borderBottom: `1px solid rgba(47, 74, 62, 0.12)`,
           padding: "16px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
         <Link href="/" style={{ textDecoration: "none" }}>
@@ -203,7 +255,62 @@ export default function DestinationDetails() {
             GooNortheast
           </span>
         </Link>
+
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Menu"
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "6px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+          }}
+        >
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+        </button>
       </header>
+
+      {menuOpen && (
+        <div
+          style={{
+            position: "sticky",
+            top: "57px",
+            zIndex: 19,
+            background: "#ffffff",
+            borderBottom: `1px solid rgba(47, 74, 62, 0.12)`,
+            display: "flex",
+            flexDirection: "column",
+            padding: "10px 24px",
+          }}
+        >
+          <Link
+            href="/destinations"
+            onClick={() => setMenuOpen(false)}
+            style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0", borderBottom: "1px solid rgba(47,74,62,0.08)" }}
+          >
+            Browse Homestays
+          </Link>
+          <Link
+            href="/about"
+            onClick={() => setMenuOpen(false)}
+            style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0", borderBottom: "1px solid rgba(47,74,62,0.08)" }}
+          >
+            About
+          </Link>
+          <Link
+            href="/contact"
+            onClick={() => setMenuOpen(false)}
+            style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0" }}
+          >
+            Contact
+          </Link>
+        </div>
+      )}
 
       <main style={{ maxWidth: "700px", margin: "0 auto", padding: "36px 20px 80px" }}>
         <Link
@@ -213,21 +320,19 @@ export default function DestinationDetails() {
           ← Back to Destinations
         </Link>
 
-        {destination.cover_photo && (
-          <div
-            style={{
-              marginTop: "16px",
-              borderRadius: "16px",
-              overflow: "hidden",
-            }}
-          >
-            <img
-              src={destination.cover_photo}
-              alt={destination.name}
-              style={{ width: "100%", height: "220px", objectFit: "cover", display: "block" }}
-            />
-          </div>
-        )}
+        <div
+          style={{
+            marginTop: "16px",
+            borderRadius: "16px",
+            overflow: "hidden",
+          }}
+        >
+          <img
+            src={destination.cover_photo || fallbackPhoto || placeholderImageFor(destination.slug)}
+            alt={destination.name}
+            style={{ width: "100%", height: "220px", objectFit: "cover", display: "block" }}
+          />
+        </div>
 
         <h1
           style={{
@@ -247,21 +352,11 @@ export default function DestinationDetails() {
           </p>
         )}
 
-        {destination.description && (
-          <p style={{ fontSize: "15px", lineHeight: 1.7, opacity: 0.85, marginBottom: "28px" }}>
-            {destination.description}
-          </p>
-        )}
-
-        <PlaceList title="Attractions" places={attractions} />
-        <PlaceList title="Activities" places={activities} />
-        <PlaceList title="Restaurants" places={restaurants} />
-
         <Link href={`/homestay/${destination.slug}`} style={{ textDecoration: "none" }}>
           <button
             style={{
               width: "100%",
-              marginTop: "10px",
+              marginBottom: "24px",
               background: colors.forest,
               color: colors.mist,
               border: "none",
@@ -275,6 +370,16 @@ export default function DestinationDetails() {
             Explore Homestays in {destination.name} →
           </button>
         </Link>
+
+        {destination.description && (
+          <p style={{ fontSize: "15px", lineHeight: 1.7, opacity: 0.85, marginBottom: "28px" }}>
+            {destination.description}
+          </p>
+        )}
+
+        <PlaceSlider title="Attractions" places={attractions} />
+        <PlaceSlider title="Activities" places={activities} />
+        <PlaceSlider title="Restaurants" places={restaurants} />
       </main>
     </div>
   );
