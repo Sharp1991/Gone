@@ -219,6 +219,29 @@ export default function HomestayDetails() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  function openLightbox(i: number) {
+    window.history.pushState({ lightbox: true }, "");
+    setLightboxIndex(i);
+  }
+
+  function closeLightbox() {
+    // If we pushed a history entry for the lightbox, undo it so the
+    // back button behaves correctly the next time it's pressed.
+    if (window.history.state?.lightbox) {
+      window.history.back();
+    } else {
+      setLightboxIndex(null);
+    }
+  }
+
+  useEffect(() => {
+    function handlePopState() {
+      setLightboxIndex(null);
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   useEffect(() => {
     if (id) fetchData();
   }, [id]);
@@ -396,7 +419,7 @@ export default function HomestayDetails() {
 
         {/* COVER PHOTO */}
         <div
-          onClick={() => property.cover_photo && setLightboxIndex(0)}
+          onClick={() => property.cover_photo && openLightbox(0)}
           style={{
             marginTop: "16px",
             borderRadius: "18px",
@@ -466,7 +489,7 @@ export default function HomestayDetails() {
                   src={image.url}
                   alt={property.title}
                   onClick={() =>
-                    setLightboxIndex((property.cover_photo ? 1 : 0) + i)
+                    openLightbox((property.cover_photo ? 1 : 0) + i)
                   }
                   style={{
                     width: "100%",
@@ -608,7 +631,7 @@ export default function HomestayDetails() {
         <Lightbox
           images={allPhotos}
           startIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
+          onClose={closeLightbox}
         />
       )}
     </div>
