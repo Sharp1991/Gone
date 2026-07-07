@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -70,12 +70,154 @@ function whatsappLink(number: string, homestayName: string) {
   return `https://wa.me/${digits}?text=${message}`;
 }
 
+function Lightbox({
+  images,
+  startIndex,
+  onClose,
+}: {
+  images: string[];
+  startIndex: number;
+  onClose: () => void;
+}) {
+  const [index, setIndex] = useState(startIndex);
+  const touchStartX = useRef<number | null>(null);
+
+  function next() {
+    setIndex((i) => (i + 1) % images.length);
+  }
+  function prev() {
+    setIndex((i) => (i - 1 + images.length) % images.length);
+  }
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const diff = e.changedTouches[0].clientX - touchStartX.current;
+    if (diff > 50) prev();
+    else if (diff < -50) next();
+    touchStartX.current = null;
+  }
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+        background: "rgba(0,0,0,0.95)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <button
+        onClick={onClose}
+        aria-label="Close"
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          background: "rgba(255,255,255,0.15)",
+          border: "none",
+          color: "#fff",
+          width: "38px",
+          height: "38px",
+          borderRadius: "50%",
+          fontSize: "18px",
+          cursor: "pointer",
+          zIndex: 2,
+        }}
+      >
+        ✕
+      </button>
+
+      <div
+        style={{
+          position: "absolute",
+          top: "18px",
+          left: "20px",
+          color: "#fff",
+          fontSize: "13px",
+          fontWeight: 600,
+          opacity: 0.8,
+        }}
+      >
+        {index + 1} / {images.length}
+      </div>
+
+      <img
+        src={images[index]}
+        alt=""
+        style={{
+          maxWidth: "94vw",
+          maxHeight: "84vh",
+          objectFit: "contain",
+          userSelect: "none",
+        }}
+      />
+
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={prev}
+            aria-label="Previous photo"
+            style={{
+              position: "absolute",
+              left: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "rgba(255,255,255,0.15)",
+              border: "none",
+              color: "#fff",
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              fontSize: "20px",
+              cursor: "pointer",
+            }}
+          >
+            ‹
+          </button>
+          <button
+            onClick={next}
+            aria-label="Next photo"
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "rgba(255,255,255,0.15)",
+              border: "none",
+              color: "#fff",
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              fontSize: "20px",
+              cursor: "pointer",
+            }}
+          >
+            ›
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function HomestayDetails() {
   const { id } = useParams<{ id: string }>();
 
   const [property, setProperty] = useState<Property | null>(null);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (id) fetchData();
@@ -141,6 +283,11 @@ export default function HomestayDetails() {
     );
   }
 
+  const allPhotos = [
+    ...(property.cover_photo ? [property.cover_photo] : []),
+    ...gallery.map((g) => g.url),
+  ];
+
   return (
     <div
       style={{
@@ -155,11 +302,14 @@ export default function HomestayDetails() {
         style={{
           position: "sticky",
           top: 0,
-          zIndex: 10,
-          background: "rgba(241, 244, 241, 0.92)",
+          zIndex: 20,
+          background: "rgba(241, 244, 241, 0.95)",
           backdropFilter: "blur(6px)",
           borderBottom: `1px solid rgba(47, 74, 62, 0.12)`,
           padding: "16px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
         <Link href="/" style={{ textDecoration: "none" }}>
@@ -174,7 +324,62 @@ export default function HomestayDetails() {
             GooNortheast
           </span>
         </Link>
+
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Menu"
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "6px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+          }}
+        >
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+        </button>
       </header>
+
+      {menuOpen && (
+        <div
+          style={{
+            position: "sticky",
+            top: "57px",
+            zIndex: 19,
+            background: "#ffffff",
+            borderBottom: `1px solid rgba(47, 74, 62, 0.12)`,
+            display: "flex",
+            flexDirection: "column",
+            padding: "10px 24px",
+          }}
+        >
+          <Link
+            href="/destinations"
+            onClick={() => setMenuOpen(false)}
+            style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0", borderBottom: "1px solid rgba(47,74,62,0.08)" }}
+          >
+            Browse Homestays
+          </Link>
+          <Link
+            href="/about"
+            onClick={() => setMenuOpen(false)}
+            style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0", borderBottom: "1px solid rgba(47,74,62,0.08)" }}
+          >
+            About
+          </Link>
+          <Link
+            href="/contact"
+            onClick={() => setMenuOpen(false)}
+            style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0" }}
+          >
+            Contact
+          </Link>
+        </div>
+      )}
 
       <main style={{ maxWidth: "760px", margin: "0 auto", padding: "30px 16px 80px" }}>
         <Link
@@ -191,11 +396,13 @@ export default function HomestayDetails() {
 
         {/* COVER PHOTO */}
         <div
+          onClick={() => property.cover_photo && setLightboxIndex(0)}
           style={{
             marginTop: "16px",
             borderRadius: "18px",
             overflow: "hidden",
             boxShadow: "0 16px 40px rgba(27, 43, 34, 0.15)",
+            cursor: property.cover_photo ? "pointer" : "default",
           }}
         >
           {property.cover_photo ? (
@@ -253,17 +460,21 @@ export default function HomestayDetails() {
                 gap: "10px",
               }}
             >
-              {gallery.map((image) => (
+              {gallery.map((image, i) => (
                 <img
                   key={image.id}
                   src={image.url}
                   alt={property.title}
+                  onClick={() =>
+                    setLightboxIndex((property.cover_photo ? 1 : 0) + i)
+                  }
                   style={{
                     width: "100%",
                     height: "110px",
                     objectFit: "cover",
                     borderRadius: "10px",
                     display: "block",
+                    cursor: "pointer",
                   }}
                 />
               ))}
@@ -392,6 +603,14 @@ export default function HomestayDetails() {
           </div>
         </section>
       </main>
+
+      {lightboxIndex !== null && (
+        <Lightbox
+          images={allPhotos}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
     </div>
   );
 }

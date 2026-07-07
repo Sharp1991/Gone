@@ -33,6 +33,7 @@ export default function HomestaysByArea() {
   const [areaName, setAreaName] = useState("");
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (area) fetchData();
@@ -78,11 +79,14 @@ export default function HomestaysByArea() {
         style={{
           position: "sticky",
           top: 0,
-          zIndex: 10,
-          background: "rgba(241, 244, 241, 0.92)",
+          zIndex: 20,
+          background: "rgba(241, 244, 241, 0.95)",
           backdropFilter: "blur(6px)",
           borderBottom: `1px solid rgba(47, 74, 62, 0.12)`,
           padding: "16px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
         <Link href="/" style={{ textDecoration: "none" }}>
@@ -90,7 +94,62 @@ export default function HomestaysByArea() {
             GooNortheast
           </span>
         </Link>
+
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Menu"
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "6px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+          }}
+        >
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+          <span style={{ width: "22px", height: "2px", background: colors.forest, display: "block" }} />
+        </button>
       </header>
+
+      {menuOpen && (
+        <div
+          style={{
+            position: "sticky",
+            top: "57px",
+            zIndex: 19,
+            background: "#ffffff",
+            borderBottom: `1px solid rgba(47, 74, 62, 0.12)`,
+            display: "flex",
+            flexDirection: "column",
+            padding: "10px 24px",
+          }}
+        >
+          <Link
+            href="/destinations"
+            onClick={() => setMenuOpen(false)}
+            style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0", borderBottom: "1px solid rgba(47,74,62,0.08)" }}
+          >
+            Browse Homestays
+          </Link>
+          <Link
+            href="/about"
+            onClick={() => setMenuOpen(false)}
+            style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0", borderBottom: "1px solid rgba(47,74,62,0.08)" }}
+          >
+            About
+          </Link>
+          <Link
+            href="/contact"
+            onClick={() => setMenuOpen(false)}
+            style={{ textDecoration: "none", color: colors.forest, fontSize: "14px", fontWeight: 600, padding: "12px 0" }}
+          >
+            Contact
+          </Link>
+        </div>
+      )}
 
       <section
         style={{
