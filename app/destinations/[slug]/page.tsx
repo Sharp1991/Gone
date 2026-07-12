@@ -41,8 +41,107 @@ function placeholderPlaceImage(name: string) {
 
 const INITIAL_VISIBLE_COUNT = 4;
 
+function PlaceLightbox({ place, onClose }: { place: Place; onClose: () => void }) {
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, []);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+        background: "rgba(10, 14, 12, 0.94)",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
+      <button
+        onClick={onClose}
+        aria-label="Close"
+        style={{
+          position: "fixed",
+          top: "18px",
+          right: "18px",
+          zIndex: 101,
+          background: "rgba(255,255,255,0.15)",
+          border: "none",
+          color: "#ffffff",
+          width: "38px",
+          height: "38px",
+          borderRadius: "50%",
+          fontSize: "18px",
+          cursor: "pointer",
+        }}
+      >
+        ✕
+      </button>
+
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          margin: "0 auto",
+          width: "100%",
+          maxWidth: "480px",
+          minHeight: "100vh",
+        }}
+      >
+        <img
+          src={place.image_url || placeholderPlaceImage(place.name)}
+          alt={place.name}
+          style={{ width: "100%", maxHeight: "60vh", objectFit: "cover", display: "block" }}
+        />
+        <div style={{ padding: "22px 20px 60px" }}>
+          <h3
+            style={{
+              fontFamily: "Georgia, 'Iowan Old Style', serif",
+              fontSize: "22px",
+              fontWeight: 700,
+              color: "#ffffff",
+              margin: "0 0 10px",
+            }}
+          >
+            {place.name}
+          </h3>
+          {place.description && (
+            <p style={{ fontSize: "14px", lineHeight: 1.7, color: "rgba(255,255,255,0.85)", margin: "0 0 20px" }}>
+              {place.description}
+            </p>
+          )}
+          {place.maps_link && (
+            <a
+              href={place.maps_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-block",
+                background: colors.bamboo,
+                color: colors.ink,
+                textDecoration: "none",
+                fontSize: "14px",
+                fontWeight: 700,
+                padding: "13px 22px",
+                borderRadius: "10px",
+              }}
+            >
+              Open in Google Maps →
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlaceSlider({ title, places }: { title: string; places: Place[] }) {
   const [expanded, setExpanded] = useState(false);
+  const [activePlace, setActivePlace] = useState<Place | null>(null);
 
   if (places.length === 0) return null;
 
@@ -160,30 +259,31 @@ function PlaceSlider({ title, places }: { title: string; places: Place[] }) {
                     {place.description}
                   </p>
                 )}
-                {place.maps_link && (
-                  <p style={{ fontSize: "11px", fontWeight: 700, color: colors.bamboo, margin: 0 }}>
-                    View on Map →
-                  </p>
-                )}
+                <p style={{ fontSize: "11px", fontWeight: 700, color: colors.bamboo, margin: 0 }}>
+                  Tap to view →
+                </p>
               </div>
             </div>
           );
 
-          return place.maps_link ? (
-            <a
+          return (
+            <button
               key={place.id}
-              href={place.maps_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ textDecoration: "none", color: "inherit" }}
+              onClick={() => setActivePlace(place)}
+              style={{
+                all: "unset",
+                cursor: "pointer",
+                display: "block",
+                scrollSnapAlign: "start",
+              }}
             >
               {card}
-            </a>
-          ) : (
-            <div key={place.id}>{card}</div>
+            </button>
           );
         })}
       </div>
+
+      {activePlace && <PlaceLightbox place={activePlace} onClose={() => setActivePlace(null)} />}
     </section>
   );
 }
