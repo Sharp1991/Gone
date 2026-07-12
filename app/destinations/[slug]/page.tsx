@@ -27,51 +27,90 @@ type Place = {
   id: string;
   category: "attraction" | "activity" | "restaurant";
   name: string;
+  description: string | null;
   maps_link: string | null;
   image_url: string | null;
 };
 
+// Used only when a place has no image_url in the database yet.
+// This is a placeholder, not a real photo of the place — add a real
+// image_url in the destination_places table to replace it.
 function placeholderPlaceImage(name: string) {
   return `https://picsum.photos/seed/${encodeURIComponent(name)}/300/220`;
 }
 
+const INITIAL_VISIBLE_COUNT = 4;
+
 function PlaceSlider({ title, places }: { title: string; places: Place[] }) {
+  const [expanded, setExpanded] = useState(false);
+
   if (places.length === 0) return null;
+
+  const visiblePlaces = expanded ? places : places.slice(0, INITIAL_VISIBLE_COUNT);
+  const hasMore = places.length > INITIAL_VISIBLE_COUNT;
 
   return (
     <section style={{ marginBottom: "28px" }}>
-      <h2
-        style={{
-          fontFamily: "Georgia, 'Iowan Old Style', serif",
-          fontSize: "17px",
-          fontWeight: 700,
-          color: colors.forest,
-          margin: "0 0 12px",
-        }}
-      >
-        {title}
-      </h2>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <h2
+          style={{
+            fontFamily: "Georgia, 'Iowan Old Style', serif",
+            fontSize: "17px",
+            fontWeight: 700,
+            color: colors.forest,
+            margin: "0 0 12px",
+          }}
+        >
+          {title}
+        </h2>
+        {hasMore && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              background: "none",
+              border: "none",
+              color: colors.river,
+              fontSize: "12.5px",
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: 0,
+              marginBottom: "12px",
+            }}
+          >
+            {expanded ? "Show less" : `See more (${places.length - INITIAL_VISIBLE_COUNT})`}
+          </button>
+        )}
+      </div>
 
       <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          overflowX: "auto",
-          paddingBottom: "6px",
-          WebkitOverflowScrolling: "touch",
-          scrollSnapType: "x mandatory",
-        }}
+        style={
+          expanded
+            ? {
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                gap: "12px",
+              }
+            : {
+                display: "flex",
+                gap: "12px",
+                overflowX: "auto",
+                paddingBottom: "6px",
+                WebkitOverflowScrolling: "touch",
+                scrollSnapType: "x mandatory",
+              }
+        }
       >
-        {places.map((place) => {
+        {visiblePlaces.map((place) => {
           const card = (
             <div
+              className="place-card"
               style={{
-                minWidth: "160px",
-                maxWidth: "160px",
+                position: "relative",
+                minWidth: expanded ? undefined : "230px",
+                maxWidth: expanded ? undefined : "230px",
+                height: "290px",
                 scrollSnapAlign: "start",
-                background: "#ffffff",
-                border: `1px solid rgba(47, 74, 62, 0.12)`,
-                borderRadius: "14px",
+                borderRadius: "16px",
                 overflow: "hidden",
                 flexShrink: 0,
               }}
@@ -79,23 +118,51 @@ function PlaceSlider({ title, places }: { title: string; places: Place[] }) {
               <img
                 src={place.image_url || placeholderPlaceImage(place.name)}
                 alt={place.name}
-                style={{ width: "100%", height: "110px", objectFit: "cover", display: "block" }}
+                className="place-card-img"
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               />
-              <div style={{ padding: "10px 12px" }}>
+
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  padding: "36px 14px 14px",
+                  background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.5) 55%, rgba(0,0,0,0) 100%)",
+                }}
+              >
                 <p
                   style={{
-                    fontSize: "13px",
+                    fontSize: "15px",
                     fontWeight: 700,
-                    color: colors.ink,
+                    color: "#ffffff",
                     margin: "0 0 4px",
                     lineHeight: 1.3,
+                    textShadow: "0 1px 3px rgba(0,0,0,0.4)",
                   }}
                 >
                   {place.name}
                 </p>
+                {place.description && (
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      lineHeight: 1.5,
+                      color: "rgba(255,255,255,0.9)",
+                      margin: "0 0 6px",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {place.description}
+                  </p>
+                )}
                 {place.maps_link && (
-                  <p style={{ fontSize: "11px", fontWeight: 600, color: colors.river, margin: 0 }}>
-                    📍 View on Map
+                  <p style={{ fontSize: "11px", fontWeight: 700, color: colors.bamboo, margin: 0 }}>
+                    View on Map →
                   </p>
                 )}
               </div>
@@ -154,7 +221,7 @@ export default function DestinationDetails() {
     if (destinationData) {
       const { data: placesData } = await supabase
         .from("destination_places")
-        .select("id, category, name, maps_link, image_url")
+        .select("id, category, name, description, maps_link, image_url")
         .eq("destination_id", destinationData.id);
 
       setPlaces(placesData || []);
@@ -350,7 +417,7 @@ export default function DestinationDetails() {
 
         {destination.distance_from_capital && (
           <p style={{ fontSize: "14px", color: colors.river, fontWeight: 600, margin: "0 0 20px" }}>
-            🚗 {destination.distance_from_capital}
+            {destination.distance_from_capital}
           </p>
         )}
 
@@ -383,6 +450,22 @@ export default function DestinationDetails() {
         <PlaceSlider title="Activities" places={activities} />
         <PlaceSlider title="Restaurants" places={restaurants} />
       </main>
+
+      <style>{`
+        .place-card-img {
+          transition: transform 0.5s ease;
+        }
+        .place-card:hover .place-card-img {
+          transform: scale(1.08);
+        }
+        .place-card {
+          transition: box-shadow 0.25s ease, transform 0.25s ease;
+        }
+        .place-card:hover {
+          box-shadow: 0 10px 20px rgba(47, 74, 62, 0.15);
+          transform: translateY(-2px);
+        }
+      `}</style>
     </div>
   );
 }
